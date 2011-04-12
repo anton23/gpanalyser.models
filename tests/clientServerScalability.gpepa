@@ -36,6 +36,7 @@ ODEs(stopTime=40.1,stepSize=0.1,density=10){} plot{
     //requirement of finishing before t=15.0 at with probability at least 0.95
     //we plot the mean total reward
     E[$reward] at 40.0 when $passage at 15.0 >= 0.95 -> "tmp/reward"; 
+    $passage at 15.0; 
 }
 
 
