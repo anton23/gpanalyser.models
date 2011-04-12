@@ -1,56 +1,60 @@
-n = 100.0; 
-m = 60.0; 
+//A sample file defining a simple client/server model
+//Everything after '//' is a comment
+
+//Each file starts with definition of numerical constants
+//These can be used as rates:
 rr = 2.0; 
 rtmt = 0.3; 
 rt = 0.27;
 rb = 0.1; 
 rd = 1.0; 
 rrst = 1.0; 
+//Or as initial populations:
+n = 100.0; //(the .0 is necessary in the current version)
+m = 60.0; 
 
 
-$reward = acc(Servers:Server_get) + #think;
-$tmp = (Servers:Server_get) + (Servers:Server_broken);  
-$passage = %Clients:_<think>Done;
+//The next are PEPA component definitions:
 
 Client = (request,rr).Client_waiting; 
 Client_waiting = (data,rd).Client_think; 
 Client_think = (think,rt).Client; 
 
-NotDone = (think,rt).Done; 
-Done = (think,rt).Done;
-
 Server = (request,rr).Server_get + (break,rb).Server_broken; 
 Server_get = (data,rd).Server; 
 Server_broken = (reset,rrst).Server; 
 
-Clients{Client<think>NotDone[n]}<request,data>Servers{Server[m]}
+//And a grouped model definition
+Clients{Client[n]}<request,data>Servers{Server[m]}
 
-Count think;
+//Various analyses can be performed on this model
 
+//For ODE fluid approximation, the ODEs analysis is used
 ODEs(stopTime=40.0,stepSize=0.1,density=10){
-	E{$passage};
-	Var{$reward};	
-	E{$reward},E{$reward}+2.0*CM{$reward,2}^0.5,E{$reward}-2.0*CM{$reward,2}^0.5;
+//stopTime: the ODEs are numerically integrated for t in [0,stopTime]
+//stepSize: the values are recorded at times 0,stepSize, 2*stepSize, ...
+//density: the number of subintervals each interval [k*stepSize,(k+1)*stepSize]
+//         is divided into in the built-in Runge Kutta solver
+
+    //Each line contains a list of expressions that are computed, separated by ','
+    //E[X} plots the mean population of X at each time 0,stepSize,2*stepSize,...
+   E[Clients:Client],E[Clients:Client_waiting],E[Clients:Client_think];
+    //The syntax ->"file" saves the data into a file
+   E[Servers:Server],E[Servers:Server_get],E[Servers:Server_broken]->"tmp/servers_odes";
+    //Var[X] plots the variance of X at each time
+   Var[Servers:Server],Var[Servers:Server_get],Var[Servers:Server_broken]->"tmp/servers_var_odes";
+    //Arithmetic expressions are supported
+    //plots the mean and mean +- 1.95 standard deviation
+   E[Servers:Server],E[Servers:Server]-1.95*Var[Servers:Server]^0.5,E[Servers:Server]+1.95*Var[Servers:Server]^0.5; 
 }
 
-
-Iterate rb from 0.0 to 2.0 in 30 steps
-	    m  from 1.0 to 100.0 in 50 steps
-	    ODEs(stopTime=40.1,stepSize=0.1,density=10){} plot{
-	    E{$reward} at 40.0 when E{$passage}/n at 15.0 >= 0.95 -> "tmp/reward";
+//Similarly, stochastic simulation can be used for comparison. 
+//replications: the number of replications of the simulation from 
+//              which the sample moments are taken
+Simulation(stopTime=40.0,stepSize=0.1,replications=10000){
+   E[Clients:Client],E[Clients:Client_waiting],E[Clients:Client_think];  
+   E[Servers:Server],E[Servers:Server_get],E[Servers:Server_broken];
+   Var[Servers:Server],Var[Servers:Server_get],Var[Servers:Server_broken]->"tmp/servers_var_sim";
+   E[Servers:Server],E[Servers:Server]-1.95*Var[Servers:Server]^0.5,E[Servers:Server]+1.95*Var[Servers:Server]^0.5;  
 }
 
-//Compare(
-/*ODEs(stopTime=40.0,stepSize=0.1,density=10){
-	E{$passage};
-	Var{$reward};	
-	E{$reward},E{$reward}+2.0*CM{$reward,2}^0.5,E{$reward}-2.0*CM{$reward,2}^0.5;
-}*//*,
-Simulation(stopTime=40.0,stepSize=0.1,replications=100000){
-	/*$passage;
-	E{$reward},E{$reward}+2.0*CM{$reward,2}^0.5,E{$reward}-2.0*CM{$reward,2}^0.5;*/
-}){
-	$passage;
-	Var{$reward};
-	E{#think};
-}*/
