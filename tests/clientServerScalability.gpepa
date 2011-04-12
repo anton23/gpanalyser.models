@@ -8,7 +8,7 @@ rd = 1.0;
 rrst = 1.0; 
 
 $reward = 2.0*#think - 1.0*acc(Servers:Server) + 2.0*acc(Servers:Server_get);
-$passage = E{%Clients:_<think>Finished}/n;
+$passage = E[%Clients:_<think>Finished]/n;
 
 Client = (request,rr).Client_waiting; 
 Client_waiting = (data,rd).Client_think; 
