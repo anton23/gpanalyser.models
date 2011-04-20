@@ -1,5 +1,6 @@
 n = 100.0; 
 m = 60.0; 
+scale = 100.0; 
 rr = 2.0; 
 rtmt = 0.3; 
 rt = 0.27;
@@ -7,8 +8,8 @@ rb = 0.1;
 rd = 1.0; 
 rrst = 1.0; 
 
-$reward = 2.0*#think - 1.0*acc(Servers:Server) + 2.0*acc(Servers:Server_get);
-$passage = E[%Clients:_<think>Finished]/n;
+$reward = 2.0*#think + (-1.0)*acc(Servers:Server) + 2.0*acc(Servers:Server_get);
+$passage = E[%Clients:_<think>Finished]/(n*scale);
 
 Client = (request,rr).Client_waiting; 
 Client_waiting = (data,rd).Client_think; 
@@ -22,7 +23,7 @@ NotFinished = (think,rt).Finished;
 Finished = (think,rt).Finished; 
 
 //A probe is attached to each client
-Clients{Client<think>NotFinished[n]}<request,data>Servers{Server[m]}
+Clients{Client<think>NotFinished[n*scale]}<request,data>Servers{Server[m*scale]}
 
 Count think; 
 
@@ -49,6 +50,7 @@ ODEs(stopTime=40.1,stepSize=0.1,density=10){} plot{
     E[$reward] at 40.0 when $passage at 15.0 >= 0.95 -> "tmp/reward"; 
     E[$reward] at 40.0;
     $passage at 15.0; 
+    Var[$reward] at 40.0; 
 }
 
 
