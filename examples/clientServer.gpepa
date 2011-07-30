@@ -7,7 +7,7 @@ rr = 2.0;
 rtmt = 0.3; 
 rt = 0.27;
 rb = 0.1; 
-rd = 1.0; 
+rd = 1.0;
 rrst = 1.0; 
 //Or as initial populations:
 n = 100.0; //(the .0 is necessary in the current version)
@@ -28,7 +28,7 @@ Server_broken = (reset,rrst).Server;
 Clients{Client[n]}<request,data>Servers{Server[m]}
 
 //Various analyses can be performed on this model
-
+Compare(
 //For ODE fluid approximation, the ODEs analysis is used
 ODEs(stopTime=40.0,stepSize=0.1,density=10){
 //stopTime: the ODEs are numerically integrated for t in [0,stopTime]
@@ -47,7 +47,7 @@ ODEs(stopTime=40.0,stepSize=0.1,density=10){
     //plots the mean and mean +- 1.95 standard deviation
    E[Servers:Server],E[Servers:Server]-1.95*Var[Servers:Server]^0.5,E[Servers:Server]+1.95*Var[Servers:Server]^0.5; 
 }
-
+,
 //Similarly, stochastic simulation can be used for comparison. 
 //replications: the number of replications of the simulation from 
 //              which the sample moments are taken
@@ -56,5 +56,9 @@ Simulation(stopTime=40.0,stepSize=0.1,replications=10000){
    E[Servers:Server],E[Servers:Server_get],E[Servers:Server_broken];
    Var[Servers:Server],Var[Servers:Server_get],Var[Servers:Server_broken]->"tmp/servers_var_sim";
    E[Servers:Server],E[Servers:Server]-1.95*Var[Servers:Server]^0.5,E[Servers:Server]+1.95*Var[Servers:Server]^0.5;  
+}){
+   E[Clients:Client],E[Clients:Client_waiting],E[Clients:Client_think];  
+   E[Servers:Server],E[Servers:Server_get],E[Servers:Server_broken];
+   Var[Servers:Server],Var[Servers:Server_get],Var[Servers:Server_broken];
 }
 
