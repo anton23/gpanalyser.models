@@ -1,0 +1,35 @@
+n = 100.0; 
+m = 60.0; 
+rr = 2.0; 
+rtmt = 0.3; 
+rt = 0.27;
+rb = 0.1; 
+rd = 1.0; 
+rrst = 1.0; 
+
+//Variable definitions are allowed
+//the syntax acc(X) stands for the process obtained as an 
+//integral over time of X from 0 to t
+
+//For example, this could be total energy consumed by all the servers
+$energy = 1.0*acc(Servers:Server) + 3.0*acc(Servers:Server_get); 
+
+Client = (request,rr).Client_waiting; 
+Client_waiting = (data,rd).Client_think; 
+Client_think = (think,rt).Client; 
+
+Server = (request,rr).Server_get + (break,rb).Server_broken; 
+Server_get = (data,rd).Server; 
+Server_broken = (reset,rrst).Server; 
+
+Clients{Client[n]}<request,data>Servers{Server[m]}
+
+ODEs(stopTime=40.0,stepSize=0.1,density=10){
+    //Can plot the mean reward
+    E[$energy];
+    //and higher moments too
+    E[$energy],E[$energy]+1.95*Var[$energy]^0.5,E[$energy] -
+    1.95*Var[$energy]^0.5->"tmp/energy_odes"; 
+}
+
+

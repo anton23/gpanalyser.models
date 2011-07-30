@@ -1,0 +1,44 @@
+n = 100.0; 
+m = 60.0; 
+rr = 2.0; 
+rtmt = 0.3; 
+rt = 0.27;
+rb = 0.1; 
+rd = 1.0; 
+rrst = 1.0; 
+
+Client = (request,rr).Client_waiting; 
+Client_waiting = (data,rd).Client_think; 
+Client_think = (think,rt).Client; 
+
+Server = (request,rr).Server_get + (break,rb).Server_broken; 
+Server_get = (data,rd).Server; 
+Server_broken = (reset,rrst).Server; 
+
+//This is a simple 'probe' that remembers whether a component has 
+//finished a think action before
+NotFinished = (think,rt).Finished; 
+Finished = (think,rt).Finished; 
+
+//A probe is attached to each client
+Clients{Client<think>NotFinished[n]}<request,data>Servers{Server[m]}
+
+ODEs(stopTime=40.0,stepSize=0.1,density=10){
+    //The mean population of the absorbing states over 
+    //the total population gives a passage time CDF
+    //E[...] can take a linear combination of moments, i.e.
+    E[  (Clients:Client<think>Finished)  
+      + (Clients:Client_waiting<think>Finished) 
+      + (Clients:Client_think<think>Finished)]/n;
+    //the parentheses in (Clients:Client...) are necessary
+    //to distinguish between PEPA '+' and arithmetic '+'
+
+    //GPA supports pattern shorthands, where the pattern 
+    //starting with % gets replaced by a sum of all the components
+    //where _ can be any PEPA component. So the above is:
+    E[%Clients:_<think>Finished]/n -> "tmp/passage_odes";
+}
+
+
+
+
