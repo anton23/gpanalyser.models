@@ -1,0 +1,62 @@
+alpha_a = 50.0; 
+alpha_a_ = 500.0;
+beta_a = 50.0;
+gamma_a = 1.0;
+delta_a = 1.0; 
+theta_a = 50.0; 
+ 
+alpha_r = 0.01; 
+alpha_r_ = 50.0; 
+beta_r = 5.0;
+theta_r = 100.0; 
+gamma_r = 1.0; 
+delta_r = 0.08;
+delta_ma = 10.0; 
+delta_mr = 0.5;
+ 
+gamma_c  = 2.0; 
+
+
+{Da_} -> {Da} @ theta_a*{Da_};
+{Da} + {A} -> {Da_} @ gamma_a*{Da}{A}; 
+{Dr_} -> {Dr} @ theta_r*{Dr_};
+{Dr}+{A} -> {Dr_} @ gamma_r*{Dr}{A};
+
+-> {Ma} @ alpha_a_*{Da_};
+-> {Ma} @ alpha_a*{Da};
+{Ma} -> @ delta_ma*{Ma};
+
+-> {A} @ beta_a*{Ma}; 
+-> {A} @ theta_a*{Da_};
+-> {A} @ theta_r*{Dr_};
+{A} -> @ delta_a*{A}; 
+{A} + {R} -> {C} @ gamma_c*{A}{R};
+
+-> {Mr} @ alpha_r_*{Dr_}; 
+-> {Mr} @ alpha_r*{Dr}; 
+{Mr} -> @ delta_mr*{Mr}; 
+
+-> {R} @ beta_r*{Mr}; 
+{R}-> @ delta_r*{R}; 
+{C} -> {R} @ delta_a*{C}; 
+
+//{C} = 1000.0; 
+{Da_} = 1.0; 
+{Dr_} = 1.0;
+
+ODEs(stopTime = 100.0, stepSize = 0.5, density = 1000){
+	E[{R}], E[{C}]->"tmp/circadianClock/odes_exp_1";	
+}
+
+ODEs(stopTime = 100.0, stepSize = 0.5, density = 10000){
+	E[{R}], E[{C}]->"tmp/circadianClock/odes_exp_2";
+	Var[{R}]^0.5,Var[{C}]^0.5 ->"tmp/circadianClock/odes_std_2";
+}
+
+Simulation(stopTime = 100.0, stepSize = 0.5, replications = 1000){
+	E[{R}], E[{C}]->"tmp/circadianClock/sim_exp";
+	Var[{R}]^0.5,Var[{C}]^0.5 ->"tmp/circadianClock/sim_std";
+}
+
+
+    
