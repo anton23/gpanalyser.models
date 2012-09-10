@@ -1,23 +1,27 @@
 n = 100.0; 
-m = 60.0; 
-scale = 100.0; 
+m = 50.0; 
+
+scale = 1.0; 
 rr = 2.0; 
-rtmt = 0.3; 
+rtmt = 0.11; 
 rt = 0.27;
-rb = 0.1; 
+rb = 0.1105; 
 rd = 1.0; 
 rrst = 1.0; 
+rsleep = 0.1; 
+rresume = 1.0; 
 
-$reward = 2.0*#think + (-1.0)*acc(Servers:Server) + 2.0*acc(Servers:Server_get);
+$reward = 2.0*#think + (-0.5)*acc(Servers:Server) + (-1.0)*acc(Servers:Server_get);
 $passage = E[%Clients:_<think>Finished]/(n*scale);
 
 Client = (request,rr).Client_waiting; 
-Client_waiting = (data,rd).Client_think; 
+Client_waiting = (data,rd).Client_think + (timeout,rtmt).Client; 
 Client_think = (think,rt).Client; 
 
-Server = (request,rr).Server_get + (break,rb).Server_broken; 
-Server_get = (data,rd).Server; 
+Server = (request,rr).Server_get + (break,rb).Server_broken + (sleep,rsleep).Server_sleep; 
+Server_get = (data,rd).Server + (break,rb).Server_broken; 
 Server_broken = (reset,rrst).Server; 
+Server_sleep = (resume,rresume).Server; 
 
 NotFinished = (think,rt).Finished; 
 Finished = (think,rt).Finished; 
@@ -25,37 +29,22 @@ Finished = (think,rt).Finished;
 //A probe is attached to each client
 Clients{Client<think>NotFinished[n*scale]}<request,data>Servers{Server[m*scale]}
 
-Count think; 
+
+Count think;
 
 
-//Can look at some parameter sweeping
-//We vary the number of servers from 1 to 100
-Iterate m from 1.0 to 100.0 in 100 steps
-	rb from 0.0 to 2.0 in 30 steps
-	Minimise E[$reward] at 40.0
-	rrst from 0.0 to 10.0 in 10 steps
-ODEs(stopTime=40.1,stepSize=0.1,density=10){} plot{
-    E[$reward] at 40.0->"tmp/reward1D"; 
-    $passage at 15.0; 
-}
+/*Simulation(stopTime=40.1,stepSize=0.1,replications=10000){
+	E[Servers:Server];
+}*/
 
-/*
-
-//Can look at some parameter sweeping
-//We vary the number of servers from 1 to 100
-Iterate m from 1.0 to 100.0 in 30 steps 
+Iterate m from 1.0 to 100.0 with step 2.0 
         //and the break rate from 0.0 to 2.0
         rb from 0.0 to 2.0 in 30 steps
-ODEs(stopTime=40.1,stepSize=0.1,density=10){} plot{
+Simulation(stopTime=40.1,stepSize=0.1,replications=10){} plot{
+//ODEs(stopTime=40.1,stepSize=0.1,density = 10){} plot{
     //for each configuration where the passage time probability satisfies a
     //requirement of finishing before t=15.0 at with probability at least 0.95
     //we plot the mean total reward
-    E[$reward] at 40.0 when $passage at 15.0 >= 0.95 -> "tmp/reward"; 
-    E[$reward] at 40.0;
-    $passage at 15.0; 
-    Var[$reward] at 40.0; 
+    E[$reward] at 40.0 when $passage at 15.0 >= 0.95; 
+	rrst at 1.0; 
 }
-*/
-
-
-

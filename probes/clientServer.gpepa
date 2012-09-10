@@ -19,14 +19,14 @@ Server_broken = (reset,rrst).Server;
 
 Clients{Client[n]}<request,data> Servers{Server[m]}
 
-
+/*
 ODEs(stopTime=40.0,stepSize=0.1,density=10){
    E[Clients:Client],E[Clients:Client_waiting],E[Clients:Client_think];
    E[Servers:Server],E[Servers:Server_get],E[Servers:Server_broken]->"tmp/servers_odes";
    E[E[Servers:Server]],E[Servers:Server]-1.95*Var[Servers:Server]^0.5,E[Servers:Server]+1.95*Var[Servers:Server]^0.5; 
 }
 
-/*
+
 Simulation(stopTime=40.0,stepSize=0.1,replications=10000){
    E[Clients:Client],E[Clients:Client_waiting],E[Clients:Client_think];  
    E[Servers:Server],E[Servers:Server_get],E[Servers:Server_broken];
