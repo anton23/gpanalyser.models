@@ -30,13 +30,16 @@ Count think;
 
 //Can look at some parameter sweeping
 //We vary the number of servers from 1 to 100
-Iterate m from 1.0 to 100.0 in 300 steps 
+Iterate m from 1.0 to 100.0 in 100 steps
+	rb from 0.0 to 2.0 in 30 steps
+	Minimise E[$reward] at 40.0
+	rrst from 0.0 to 10.0 in 10 steps
 ODEs(stopTime=40.1,stepSize=0.1,density=10){} plot{
     E[$reward] at 40.0->"tmp/reward1D"; 
     $passage at 15.0; 
 }
 
-
+/*
 
 //Can look at some parameter sweeping
 //We vary the number of servers from 1 to 100
@@ -52,7 +55,7 @@ ODEs(stopTime=40.1,stepSize=0.1,density=10){} plot{
     $passage at 15.0; 
     Var[$reward] at 40.0; 
 }
-
+*/
 
 
 
