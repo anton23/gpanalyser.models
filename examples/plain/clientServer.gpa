@@ -1,3 +1,4 @@
+
 n = 100.0; 
 m = 60.0; 
 rr = 2.0; 
@@ -8,7 +9,13 @@ rd = 1.0;
 rrst = 2.0; 
 
 
-scale = 1;
+scale = 10;
+
+
+$theta = (Var[{Client}]-2*(E[{Client} {Server}] - E[{Client}]*E[{Server}])+ Var[{Server}])^0.5;
+
+$theta2 = (Var[{Client_waiting}]-2*(E[{Client_waiting} {Server_get}] - E[{Client_waiting}]*E[{Server_get}])+ Var[{Server_get}])^0.5;
+
 
 {Client} + {Server} -> {Client_waiting} + {Server_get} @ min({Client},{Server})*rr; 
 
@@ -20,7 +27,8 @@ scale = 1;
 {Server} -> {Server_broken} @ {Server}*rb;
 {Server_get} -> {Server_broken} @ {Server_get}*rb;
 
-{Client_waiting} -> {Client} @ {Client_waiting}*rtmt;
+
+{Client_waiting} -> {Client} @ {Client_waiting} * rtmt;
 
 //reset 
 {Server_broken} -> {Server} @ {Server_broken}*rrst;
@@ -28,77 +36,97 @@ scale = 1;
 {Client} = n*scale; 
 {Server} = m*scale; 
 
-/*
-ODEs(stopTime = 40.0,stepSize = 0.1,density = 10){ 
+ODEs[momentClosure=AccumulatedNormalClosure, maxOrder=2](stopTime = 40.0,stepSize = 0.1,density = 10){ 
 	E[{Client}],E[{Client_waiting}],E[{Client_think}];
-	E[{Server}], E[{Server_get}], E[{Server_broken}];
+	E[{Server}], E[{Server_broken}];
 	
 	Var[{Client}],Var[{Client_waiting}],Var[{Client_think}];
-	Var[{Server}], Var[{Server_get}], Var[{Server_broken}];	
+	Var[{Server}], Var[{Server_broken}];
 	
-	Cov[{Client}, {Server}], Cov[{Client}, {Server_get}], Cov[{Client}, {Server_broken}];
-	
-	max(E[acc({Server})]-E[acc({Client})],0.0),
-	-E[acc({Client})+acc({Server})*(-1)]*phiC(-E[acc({Client})+acc({Server})*(-1)]/(Var[acc({Client})+acc({Server})*(-1)]^0.5))
-	+Var[acc({Client})+acc({Server})*(-1)]^0.5*phi(-E[acc({Client})+acc({Server})*(-1)]/(Var[acc({Client})+acc({Server})*(-1)]^0.5))
-	;
-}*/
-
-
-ODEs[momentClosure=AccumulatedNormalClosureMinApproximation, maxOrder=2](stopTime = 40.0,stepSize = 0.1,density = 10){ 
-	E[{Client}],E[{Client_waiting}],E[{Client_think}];
-	E[{Server}], E[{Server_get}], E[{Server_broken}];
-	
-	Var[{Client}],Var[{Client_waiting}],Var[{Client_think}];
-	Var[{Server}], Var[{Server_get}], Var[{Server_broken}];
-	
-	Cov[{Client}, {Server}], Cov[{Client}, {Server_get}], Cov[{Client}, {Server_broken}];
-	
-	E[acc({Server})];
-	Var[acc({Server})];	
-	
-	
-	max(E[acc({Server})]-E[acc({Client})],0.0),
-	-E[acc({Client})+acc({Server})*(-1)]*safe_Phi(-E[acc({Client})+acc({Server})*(-1)],(Var[acc({Client})+acc({Server})*(-1)]^0.5))
-	+Var[acc({Client})+acc({Server})*(-1)]^0.5*safe_phi(-E[acc({Client})+acc({Server})*(-1)],(Var[acc({Client})+acc({Server})*(-1)]^0.5))
-	;
+	min(E[{Client}], E[{Server}]),
+   
+   E[{Client}]*phiC((-E[{Client}]+E[{Server}])/$theta)
+   +
+   E[{Server}]*phiC((E[{Client}]-E[{Server}])/$theta)
+   -
+   $theta*phi((E[{Client}]-E[{Server}])/$theta);
+   
+    E[{Client_waiting}]*phiC((-E[{Client_waiting}]+E[{Server_get}])/$theta2)
+   +
+   E[{Server_get}]*phiC((E[{Client_waiting}]-E[{Server_get}])/$theta2)
+   -
+   $theta2*phi((E[{Client_waiting}]-E[{Server_get}])/$theta2);
+   
+   E[{Server_get}]*min(E[{Server_get}{Client}], E[{Server_get}{Server}]),
+   
+   E[{Server_get}{Client}]*phiC((-E[{Client}]+E[{Server}])/$theta)
+   +
+   E[{Server_get}{Server}]*phiC((E[{Client}]-E[{Server}])/$theta)
+   -
+   E[{Server_get}]*$theta*phi((E[{Client}]-E[{Server}])/$theta);
+   
+   E[{Client_think}]*min(E[{Client_think}{Client}], E[{Client_think}{Server}]),
+   
+   E[{Client_think}{Client}]*phiC((-E[{Client}]+E[{Server}])/$theta)
+   +
+   E[{Client_think}{Server}]*phiC((E[{Client}]-E[{Server}])/$theta)
+   -
+   E[{Client_think}]*$theta*phi((E[{Client}]-E[{Server}])/$theta);
 }
 
-Simulation(stopTime = 40.0, stepSize = 0.1, replications = 10000){
+
+
+Simulation(stopTime = 40.0,stepSize = 0.1, replications = 10000){ 
 	E[{Client}],E[{Client_waiting}],E[{Client_think}];
-	E[{Server}], E[{Server_get}], E[{Server_broken}];
+	E[{Server}], E[{Server_broken}];
 	
 	Var[{Client}],Var[{Client_waiting}],Var[{Client_think}];
-	Var[{Server}], Var[{Server_get}], Var[{Server_broken}];
-	
-	Cov[{Client}, {Server}], Cov[{Client}, {Server_get}], Cov[{Client}, {Server_broken}];	
-	
-	Eg[-min({Client}-{Server}, 0.0)], Eg[max({Server}-{Client}, 0.0)],max(E[{Server}]-E[{Client}],0.0),
-	-E[{Client}+{Server}*(-1)]*safe_Phi(-E[{Client}+{Server}*(-1)],(Var[{Client}+{Server}*(-1)]^0.5))
-	+Var[{Client}+{Server}*(-1)]^0.5*safe_phi(-E[{Client}+{Server}*(-1)],(Var[{Client}+{Server}*(-1)]^0.5))
-	;
-	
-	
-	Eg[max(acc({Server})-acc({Client}), 0.0)],max(E[acc({Server})]-E[acc({Client})],0.0),
-	E[acc({Client})+acc({Server})*(-1)]*safe_Phi(E[acc({Client})+acc({Server})*(-1)],sqrt((Var[acc({Client})+acc({Server})*(-1)])))
-	+sqrt(Var[acc({Client})+acc({Server})*(-1)])*safe_phi(-E[acc({Client})+acc({Server})*(-1)],sqrt((Var[acc({Client})+acc({Server})*(-1)])))
-	;
-	
-	 Eg[max(acc({Server})-acc({Client}), 0.0)],max(E[acc({Server})]-E[acc({Client})],0.0),
-	-E[acc({Client})+acc({Server})*(-1)]*safe_Phi(-E[acc({Client})+acc({Server})*(-1)],sqrt((Var[acc({Client})+acc({Server})*(-1)])))
-	+sqrt(Var[acc({Client})+acc({Server})*(-1)])*safe_phi(-E[acc({Client})+acc({Server})*(-1)],sqrt((Var[acc({Client})+acc({Server})*(-1)])))
-	;
-	
-	
-	Eg[{Server_get}*max(acc({Server})-acc({Client}), 0.0)],max(E[{Server_get} acc({Server} )]-E[{Server_get} acc({Client})],0.0),
-	E[{Server_get}]*max(E[acc({Server} )]-E[acc({Client})],0.0),
-	-E[{Server_get} acc({Client})+{Server_get} acc({Server})*(-1)]*safe_Phi(-E[{Server_get} acc({Client})+{Server_get} acc({Server})*(-1)],(Var[{Server_get} acc({Client})+{Server_get} acc({Server})*(-1)]^0.5))
-	+Var[{Server_get} acc({Client})+{Server_get} acc({Server})*(-1)]^0.5*safe_phi(-E[{Server_get} acc({Client})+{Server_get} acc({Server})*(-1)],(Var[{Server_get} acc({Client})+{Server_get} acc({Server})*(-1)]^0.5))
-	;
-	
-	
-	Var[acc({Server})];
+	Var[{Server}], Var[{Server_broken}];
+
+   Eg[min({Client}, {Server})], min(E[{Client}], E[{Server}]),
+   
+   E[{Client}]*phiC((-E[{Client}]+E[{Server}])/$theta)
+   +
+   E[{Server}]*phiC((E[{Client}]-E[{Server}])/$theta)
+   -
+   $theta*phi((E[{Client}]-E[{Server}])/$theta);
+   
+   Eg[min({Client_waiting}, {Server_get})],
+   
+   E[{Client_waiting}]*phiC((-E[{Client_waiting}]+E[{Server_get}])/$theta2)
+   +
+   E[{Server_get}]*phiC((E[{Client_waiting}]-E[{Server_get}])/$theta2)
+   -
+   $theta2*phi((E[{Client_waiting}]-E[{Server_get}])/$theta2);
+   
+   
+   Eg[{Server_broken} * min({Client}, {Server})], E[{Server_broken}]*min(E[{Server_broken}{Client}], E[{Server_broken}{Server}]),
+   
+   E[{Server_broken}{Client}]*phiC((-E[{Client}]+E[{Server}])/$theta)
+   +
+   E[{Server_broken}{Server}]*phiC((E[{Client}]-E[{Server}])/$theta)
+   -
+   E[{Server_broken}]*$theta*phi((E[{Client}]-E[{Server}])/$theta);
+   
+      
+   Eg[{Server_get} * min({Client}, {Server})], E[{Server_get}]*min(E[{Server_get}{Client}], E[{Server_get}{Server}]),
+   
+   E[{Server_get}{Client}]*phiC((-E[{Client}]+E[{Server}])/$theta)
+   +
+   E[{Server_get}{Server}]*phiC((E[{Client}]-E[{Server}])/$theta)
+   -
+   E[{Server_get}]*$theta*phi((E[{Client}]-E[{Server}])/$theta);
+   
+   Eg[{Client_think} * min({Client}, {Server})], E[{Client_think}]*min(E[{Client_think}{Client}], E[{Client_think}{Server}]),
+   
+   E[{Client_think}{Client}]*phiC((-E[{Client}]+E[{Server}])/$theta)
+   +
+   E[{Client_think}{Server}]*phiC((E[{Client}]-E[{Server}])/$theta)
+   -
+   E[{Client_think}]*$theta*phi((E[{Client}]-E[{Server}])/$theta);
 }
+
+
 
 
 
