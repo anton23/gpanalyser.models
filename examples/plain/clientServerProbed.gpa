@@ -5,30 +5,58 @@ rtmt = 0.3;
 rt = 0.27;
 rb = 0.1; 
 rd = 1.0; 
-rrst = 1.0; 
+rrst = 2.0; 
 
-{Client} + {Server} -> {Client_waiting,Server_get} @ rr*div({Client},%#Client)*min(%#Client,{Server}); 
-{Client_waiting,Server_get} -> {Client_think} + {Server} @ rd*{Client_waiting,Server_get};
-{Client_think} -> {Client,Done} @ rt*{Client_think};
+$client = {Client} + {Client, Done};
+$client_waiting = {Client_waiting} + {Client_waiting, Done};
+$client_think = {Client_think} + {Client_think, Done};
 
-{Client,Done} + {Server} -> {Client_waiting,Done,Server_get} @ rr*div({Client,Done},%#Client)*min(%#Client,{Server}); 
-{Client_waiting,Done,Server_get} -> {Client_think,Done} + {Server} @ rd*{Client_waiting,Done,Server_get};
-{Client_think,Done} -> {Client,Done} @ rt*{Client_think,Done};
+$min1 = min($client,{Server});
+$min2 = min($client_waiting,{Server_get});
+
+{Client} + {Server} -> {Client_waiting} + {Server_get} @ min($client,{Server})*rr*div({Client},{Client} + {Client, Done}); 
+{Client_waiting} + {Server_get} -> {Client_think} + {Server} @ min($client_waiting,{Server_get})*rd*div({Client_waiting},{Client_waiting} + {Client_waiting, Done});
+{Client_think} -> {Client,Done} @ {Client_think}*rt;
+
+{Client,Done} + {Server} -> {Client_waiting,Done} + {Server_get} @ min($client,{Server})*rr*div({Client,Done},{Client} + {Client, Done}); 
+{Client_waiting,Done} + {Server_get} -> {Client_think,Done} + {Server} @ min($client_waiting,{Server_get})*rd*div({Client_waiting,Done},{Client_waiting} + {Client_waiting, Done});
+{Client_think,Done} -> {Client,Done} @ {Client_think,Done}*rt;
 
 
 //breaking 
-{Server} -> {Server_broken} @ rb*{Server};
-//reset 
-{Server_broken} -> {Server} @ rrst*{Server_broken};
+{Server} -> {Server_broken} @ {Server}*rb;
+{Server_get} -> {Server_broken} @ {Server_get}*rb;
+
+{Client_waiting} -> {Client} @ {Client_waiting}*rtmt;
+{Client_waiting, Done} -> {Client, Done} @ {Client_waiting, Done}*rtmt;
+
+//reset
+ 
+{Server_broken} -> {Server} @ {Server_broken}*rrst;
 
 {Client} = n; 
 {Server} = m; 
 
-ODEs(stopTime = 40.0,stepSize = 0.1,density = 10){ 
-	E[%#Client],E[%#Client_waiting],E[%#Client_think];
-	E[{Server}],
-	  E[{Server}]-1.95*Var[{Server}]^0.5,E[{Server}]+1.95*Var[{Server}]^0.5;
+ODEs[momentClosure=NormalClosure, maxOrder = 2](stopTime = 40.0,stepSize = 0.1,density = 10){ 
+	E[$client],E[$client_waiting],E[$client_think];
+	E[{Server}],E[{Server_get}],E[{Server_broken}];
 	E[%#Done]/n;
+/*	
+	Var[$client],Var[$client_waiting],Var[$client_think];
+	Var[{Server}],Var[{Server_get}],Var[{Server_broken}];
+	
+	Cov[$client, {Server}], Cov[$client, {Server_get}], Cov[$client, {Server_broken}];*/
+}
+
+Simulation(stopTime = 40.0,stepSize = 0.1, replications = 10000){ 
+	E[$client],E[$client_waiting],E[$client_think];
+	E[{Server}],E[{Server_get}],E[{Server_broken}];
+	E[%#Done]/n;
+	
+	Var[$client],Var[$client_waiting],Var[$client_think];
+	Var[{Server}],Var[{Server_get}],Var[{Server_broken}];
+	
+	Cov[$client, {Server}], Cov[$client, {Server_get}], Cov[$client, {Server_broken}];
 }
 
 
