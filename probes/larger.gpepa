@@ -14,9 +14,9 @@ r_reset = 1;
 init_success = 0.9;
 init_fail = 0.1;
 
-nc = 50;
-nb = 30;
-ns = 40;
+nc = 10;
+nb = 6;
+ns = 8;
 
 Client				= (think, r_think).Client_think;
 Client_think		= (request, r_request).Client
@@ -49,37 +49,10 @@ CompleteServer = Server <initialise, serve, reset> DatabaseDriver;
 
 (Clients{Client[nc]} <request> Buffers{ManagedBuffer[nb]}) <serve> Servers{CompleteServer[ns]}
 
-Probe ["database-steady-serve.dat"] (stopTime=250, stepSize=0.5, density=10) steady 750
-//SimProbe ["database-steady-serve-10-6-8.dat"] (stopTime=250, stepSize=0.5, replications=20000) steady 750
-{
-    SIPT = begin : start, end : stop <-
-    observes
-    {
-    	LProbe = initialise : begin, serve[4] : end <-
-    }
-    where
-    {
-    	Servers {CompleteServer[ns]} =>
-    		Servers {CompleteServer <*> LProbe
-    				 | CompleteServer[ns - 1]}
-    }
-}
 
-Probe ["database-steady-add.dat"] (stopTime=150, stepSize=0.5, density=10) steady 350
-//SimProbe ["database-steady-add-10-6-8.dat"] (stopTime=150, stepSize=0.5, replications=20000) steady 350
-{
-    HIPT = begin : start, end : stop <-
-    observes
-    {
-    	LProbe = check : begin, add[15] : end <-
-    }
-    where
-    {
-    	Buffers {ManagedBuffer[nb]} =>
-    		Buffers {ManagedBuffer <*> LProbe
-    				 | ManagedBuffer[nb - 1]}
-    }
-}
+
+// how long it takes a Client to send 10 requests,
+// given it has sent at least a batch of two requests already in steady-state
 
 Probe ["database-steady-request.dat"] (stopTime=200, stepSize=0.5, density=10) steady 3500
 //SimProbe ["database-steady-request-10-6-8.dat"] (stopTime=200, stepSize=0.5, replications=20000) steady 3500
@@ -97,12 +70,15 @@ Probe ["database-steady-request.dat"] (stopTime=200, stepSize=0.5, density=10) s
     }
 }
 
-Probe ["database-transient-serve.dat"] (stopTime=250, stepSize=0.5, density=10) transient 750
+// time, since a CompleteServer initialises till it resets 12 times
+
+Probe ["database-transient-reset.dat"] (stopTime=250, stepSize=1, density=10) transient 500
+//SimProbe ["database-transient-reset-10-6-8.dat"] (stopTime=250, stepSize=1, replications=20000) transient 500
 {
     SIPT = begin : start, end : stop
     observes
     {
-    	LProbe = initialise : begin, serve[5] : end
+    	LProbe = initialise : begin, reset[12] : end
     }
     where
     {
@@ -111,6 +87,46 @@ Probe ["database-transient-serve.dat"] (stopTime=250, stepSize=0.5, density=10) 
     				 | CompleteServer[ns - 1]}
     }
 }
+
+// time, until 80% of the servers 8 times overload and also 8 times handle a request
+
+Probe ["database-global-overloadserve.dat"] (stopTime=250, stepSize=0.5, density=10)
+//SimProbe ["database-global-overloadserve-10-6-8.dat"] (stopTime=500, stepSize=0.5, replications=20000)
+{
+    GPT = eE : start, end[ns*0.8] : stop
+    observes
+    {
+    	LProbe = (overload[8] ; serve[8]) : end
+    }
+    where
+    {
+    	Servers {CompleteServer[ns]} =>
+    		Servers {(CompleteServer <*> LProbe) [ns]}
+    }
+}
+
+// time to add 5 transactions into a ManagedBuer, starting at equilibrium
+// after we send a request and a successful add operation
+// is performed, not necessarily on this request
+
+Probe ["database-steady-add.dat"] (stopTime=150, stepSize=0.5, density=10) steady 3500
+//SimProbe ["database-steady-add-10-6-8.dat"] (stopTime=150, stepSize=0.5, replications=20000) steady 3500
+{
+    SimHIPT = begin : start, end : stop <-
+    observes
+    {
+    	LProbe = (request, ((check, add) / request)) : begin, add[5] : end <-
+    }
+    where
+    {
+    	Buffers {ManagedBuffer[nb]} =>
+    		Buffers {ManagedBuffer <*> LProbe
+    				 | ManagedBuffer[nb - 1]}
+    }
+}
+
+// time from initialisation of a CompleteServer to
+// serving a request 3 times without resetting in between
 
 Probe ["database-transient-servenoreset.dat"] (stopTime=250, stepSize=1, density=10) transient 500
 //SimProbe ["database-transient-servenoreset-10-6-8.dat"] (stopTime=250, stepSize=1, replications=20000) transient 500
@@ -127,3 +143,131 @@ Probe ["database-transient-servenoreset.dat"] (stopTime=250, stepSize=1, density
     				 | CompleteServer[ns - 1]}
     }
 }
+
+// time it takes 95% of Client components to send 20 requests
+
+Probe ["database-global-request.dat"] (stopTime=500, stepSize=0.5, density=10)
+//SimProbe ["database-global-request-10-68-8.dat"] (stopTime=500, stepSize=0.5, replications=20000)
+{
+    GPT = eE : start, end[nc*0.95] : stop
+    observes
+    {
+    	LProbe = request[20] : end
+    }
+    where
+    {
+    	Clients {Client[nc]} =>
+    		Clients {(Client <*> LProbe) [nc]}
+    }
+}
+
+// In the steady state, we expect a server to initialise and serve, and also reset twice,
+// while not overloading (so that we count only resets from the DatabaseDriver).
+// Additionally, we repeat this three times.
+
+Probe ["database-steady-request.dat"] (stopTime=300, stepSize=0.5, density=10) steady 3500
+//SimProbe ["database-steady-request-10-6-8.dat"] (stopTime=300, stepSize=0.5, replications=20000) steady 3500
+{
+    SIPT = begin : start, end : stop<-
+    observes
+    {
+    	LProbe = eE : begin, (((initialise, serve) ; reset[2])/overload)[3] : end<-
+    }
+    where
+    {
+    	Servers {CompleteServer[ns]} =>
+    		Servers {CompleteServer <*> LProbe
+    				 | CompleteServer[ns - 1]}
+    }
+}
+
+// this one measures when will a server handle its first 12 transactions
+
+Probe ["database-transient-request.dat"] (stopTime=250, stepSize=0.5, density=10) transient 0.5
+//SimProbe ["database-steady-request-10-6-8.dat"] (stopTime=250, stepSize=0.5, replications=20000) transient 20
+{
+    SIPT = begin : start, end : stop
+    observes
+    {
+    	LProbe = eE : begin, request[12] : end
+    }
+    where
+    {
+    	Clients {Client[nc]} =>
+    		Clients {Client <*> LProbe
+    				 | Client[nc - 1]}
+    }
+}
+
+// measures the time until half of the buers successfully add 25 transactions
+
+Probe ["database-global-add.dat"] (stopTime=350, stepSize=0.5, density=10)
+//SimProbe ["database-global-add-10-6-8.dat"] (stopTime=350, stepSize=0.5, replications=20000)
+{
+    GPT = eE : start, end[nb/2] : stop
+    observes
+    {
+    	LProbe = add[25] : end
+    }
+    where
+    {
+    	Buffers {ManagedBuffer[nb]} =>
+    		Buffers {(ManagedBuffer <*> LProbe) [nb]}
+    }
+}
+
+// time until a buer adds or pushes out 20 transactions,
+// given that it has already seen a request in equilibrium
+
+Probe ["database-steady-addserve.dat"] (stopTime=150, stepSize=0.5, density=10) steady 3500
+//SimProbe ["database-steady-add-10-6-8.dat"] (stopTime=150, stepSize=0.5, replications=20000) steady 3500
+{
+    SimHIPT = begin : start, end : stop <-
+    observes
+    {
+    	LProbe = request : begin, (add | serve)[20] : end <-
+    }
+    where
+    {
+    	Buffers {ManagedBuffer[nb]} =>
+    		Buffers {ManagedBuffer <*> LProbe
+    				 | ManagedBuffer[nb - 1]}
+    }
+}
+
+// time, when a buffer adds and also removes transactions at least 8 times
+
+Probe ["database-transient-addandserve.dat"] (stopTime=150, stepSize=0.5, density=10) transient 0.5
+//SimProbe ["database-transient-addandserve-10-6-8.dat"] (stopTime=150, stepSize=0.5, replications=20000) transient 0.5
+{
+    SIPT = begin : start, end : stop
+    observes
+    {
+    	LProbe = eE : begin, (add ; serve)[8] : end
+    }
+    where
+    {
+    	Buffers {ManagedBuffer[nb]} =>
+    		Buffers {ManagedBuffer <*> LProbe
+    				 | ManagedBuffer[nb - 1]}
+    }
+}
+
+// when will at least 60% of the servers handle 5 transactions without resetting in between
+
+Probe ["database-global-add.dat"] (stopTime=350, stepSize=0.5, density=10)
+//SimProbe ["database-global-add-10-6-8.dat"] (stopTime=350, stepSize=0.5, replications=20000)
+{
+    GPT = eE : start, end[nb/2] : stop
+    observes
+    {
+    	LProbe = add[25] : end
+    }
+    where
+    {
+    	Buffers {ManagedBuffer[nb]} =>
+    		Buffers {(ManagedBuffer <*> LProbe) [nb]}
+    }
+}
+
+
