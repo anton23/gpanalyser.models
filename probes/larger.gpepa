@@ -105,7 +105,7 @@ Probe ["database-global-overloadserve.dat"] (stopTime=250, stepSize=0.5, density
     }
 }
 
-// time to add 5 transactions into a ManagedBuer, starting at equilibrium
+// time to add 5 transactions into a ManagedBuffer, starting at equilibrium
 // after we send a request and a successful add operation
 // is performed, not necessarily on this request
 
@@ -199,7 +199,7 @@ Probe ["database-transient-request.dat"] (stopTime=250, stepSize=0.5, density=10
     }
 }
 
-// measures the time until half of the buers successfully add 25 transactions
+// measures the time until half of the buffers successfully add 25 transactions
 
 Probe ["database-global-add.dat"] (stopTime=350, stepSize=0.5, density=10)
 //SimProbe ["database-global-add-10-6-8.dat"] (stopTime=350, stepSize=0.5, replications=20000)
@@ -216,7 +216,7 @@ Probe ["database-global-add.dat"] (stopTime=350, stepSize=0.5, density=10)
     }
 }
 
-// time until a buer adds or pushes out 20 transactions,
+// time until a buffer adds or pushes out 20 transactions,
 // given that it has already seen a request in equilibrium
 
 Probe ["database-steady-addserve.dat"] (stopTime=150, stepSize=0.5, density=10) steady 3500
