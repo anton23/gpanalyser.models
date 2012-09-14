@@ -49,6 +49,38 @@ CompleteServer = Server <initialise, serve, reset> DatabaseDriver;
 
 (Clients{Client[nc]} <request> Buffers{ManagedBuffer[nb]}) <serve> Servers{CompleteServer[ns]}
 
+Probe ["database-steady-serve.dat"] (stopTime=250, stepSize=0.5, density=10) steady 750
+//SimProbe ["database-steady-serve-10-6-8.dat"] (stopTime=250, stepSize=0.5, replications=20000) steady 750
+{
+    SIPT = begin : start, end : stop <-
+    observes
+    {
+    	LProbe = initialise : begin, serve[4] : end <-
+    }
+    where
+    {
+    	Servers {CompleteServer[ns]} =>
+    		Servers {CompleteServer <*> LProbe
+    				 | CompleteServer[ns - 1]}
+    }
+}
+
+Probe ["database-steady-add.dat"] (stopTime=150, stepSize=0.5, density=10) steady 350
+//SimProbe ["database-steady-add-10-6-8.dat"] (stopTime=150, stepSize=0.5, replications=20000) steady 350
+{
+    HIPT = begin : start, end : stop <-
+    observes
+    {
+    	LProbe = check : begin, add[15] : end <-
+    }
+    where
+    {
+    	Buffers {ManagedBuffer[nb]} =>
+    		Buffers {ManagedBuffer <*> LProbe
+    				 | ManagedBuffer[nb - 1]}
+    }
+}
+
 Probe ["database-steady-request.dat"] (stopTime=200, stepSize=0.5, density=10) steady 3500
 //SimProbe ["database-steady-request-10-6-8.dat"] (stopTime=200, stepSize=0.5, replications=20000) steady 3500
 {
@@ -60,8 +92,23 @@ Probe ["database-steady-request.dat"] (stopTime=200, stepSize=0.5, density=10) s
     where
     {
     	Clients {Client[nc]} =>
-    		Clients {Client <think, request> LProbe
+    		Clients {Client <*> LProbe
     				 | Client[nc - 1]}
+    }
+}
+
+Probe ["database-transient-serve.dat"] (stopTime=250, stepSize=0.5, density=10) transient 750
+{
+    SIPT = begin : start, end : stop
+    observes
+    {
+    	LProbe = initialise : begin, serve[5] : end
+    }
+    where
+    {
+    	Servers {CompleteServer[ns]} =>
+    		Servers {CompleteServer <*> LProbe
+    				 | CompleteServer[ns - 1]}
     }
 }
 
@@ -76,7 +123,7 @@ Probe ["database-transient-servenoreset.dat"] (stopTime=250, stepSize=1, density
     where
     {
     	Servers {CompleteServer[ns]} =>
-    		Servers {CompleteServer <initialise, serve, reset> LProbe
+    		Servers {CompleteServer <*> LProbe
     				 | CompleteServer[ns - 1]}
     }
 }
