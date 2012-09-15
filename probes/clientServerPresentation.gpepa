@@ -51,8 +51,8 @@ Probe ["preso-transient.dat"] (stopTime=100, stepSize=0.25, density=10) transien
     }
 }
 
-//Probe ["preso-global.dat"] (stopTime=350, stepSize=0.5, density=10)
-SimProbe ["preso-global-100-60.dat"] (stopTime=350, stepSize=0.5, replications=7500)
+Probe ["preso-global.dat"] (stopTime=350, stepSize=0.5, density=10)
+//SimProbe ["preso-global-100-60.dat"] (stopTime=350, stepSize=0.5, replications=7500)
 {
     SimHIPT = eE : start, end[nc*0.1] : stop
     observes
