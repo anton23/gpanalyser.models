@@ -36,21 +36,20 @@ Probe (stopTime=250, stepSize=1, density=10) steady 300
     where
     {
     	Consumers {Consumer[nc]} =>
-    		Consumers {Consumer <use> LProbe | Consumer [nc - 1]}
+    		Consumers {Consumer <*> LProbe | Consumer [nc - 1]}
     }
 }
 
-SimProbe ["transientNew105-35.dat"] (stopTime=250, stepSize=1, replications=5000) transient 300
+SimProbe (stopTime=250, stepSize=1, replications=5000) steady 300
 {
-    TIPT = begin : start, end : stop
+    SIPT = begin : start, end : stop <-
     observes
     {
-    	LProbe = init : begin, clear : end
+    	LProbe = eE : begin, use[2] : end <-
     }
     where
     {
-    	Producers {Producer <get_product> Terminal [np]} =>
-    		Producers {(Producer <init, clear> LProbe) <get_product> Terminal
-    			| (Producer <get_product> Terminal)[np - 1]}
+    	Consumers {Consumer[nc]} =>
+    		Consumers {Consumer <*> LProbe | Consumer [nc - 1]}
     }
 }
