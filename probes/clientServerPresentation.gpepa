@@ -20,7 +20,7 @@ Server_2 = (reinit, r_reinit).Server_1 + (reset, r_reset).Server_0;
 Clients {Client_0[nc]} <request> Servers {Server_0[ns]}
 
 Probe ["preso-steady.dat"] (stopTime=500, stepSize=0.5, density=10) steady 1000
-//SimProbe ["preso-steady-100-60.dat"] (stopTime=500, stepSize=0.5, replications=10000) steady 1000
+//SimProbe ["preso-steady-100-60.dat"] (stopTime=500, stepSize=0.5, replications=20000) steady 1000
 {
     SimHIPT = begin : start, end : stop <-
     observes
@@ -36,7 +36,7 @@ Probe ["preso-steady.dat"] (stopTime=500, stepSize=0.5, density=10) steady 1000
 }
 
 Probe ["preso-transient.dat"] (stopTime=100, stepSize=0.25, density=10) transient 0.25
-//SimProbe ["preso-transient-100-60.dat"] (stopTime=100, stepSize=0.5, replications=10000) transient 500
+//SimProbe ["preso-transient-100-60.dat"] (stopTime=100, stepSize=0.5, replications=20000) transient 500
 {
     SimHIPT = begin : start, end : stop
     observes
@@ -52,7 +52,7 @@ Probe ["preso-transient.dat"] (stopTime=100, stepSize=0.25, density=10) transien
 }
 
 Probe ["preso-global.dat"] (stopTime=350, stepSize=0.5, density=10)
-//SimProbe ["preso-global-100-60.dat"] (stopTime=350, stepSize=0.5, replications=7500)
+//SimProbe ["preso-global-100-60.dat"] (stopTime=350, stepSize=0.5, replications=20000)
 {
     SimHIPT = eE : start, end[nc*0.1] : stop
     observes
