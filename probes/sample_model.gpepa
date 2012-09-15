@@ -1,0 +1,79 @@
+r_think = 0.05;
+r_request = 0.2;
+r_timeout = 0.007;
+
+r_prepare = 0.2;
+r_fail = 0.05;
+r_recover = 0.02;
+prepare_fast = 0.02;
+prepare_slow = 0.08;
+
+r_solve_fast = 0.07;
+r_solve_slow = 0.04;
+
+nc = 100;
+ns = 30;
+
+Client					= (think, r_think).Client_think;
+Client_think			= (request, r_request).Client
+						+ (timeout, r_timeout).Client;
+
+Server					= (prepare, r_prepare).Server_prepare
+						+ (fail, r_fail).Server_fail;
+Server_prepare			= randomize.Server_randomize;
+Server_randomize		= (request, r_request).Server;
+Server_fail				= (recover, r_recover).Server;
+
+Solver					= (prepare, T, prepare_fast).Solver_fast
+						+ (prepare, T, prepare_slow).Solver_slow;
+Solver_fast				= (request, r_solve_fast).Solver;
+Solver_slow				= (request, r_solve_slow).Solver;
+
+Complete_server = Solver <prepare, request> Server;
+
+Clients{Client[nc]} <request> Servers{Complete_server[ns]}
+
+Probe ["sample-steady-request.dat"] (stopTime=350.0, stepSize=0.5, density=10) steady 1000
+//SimProbe ["sample-steady-request-100-30.dat"] (stopTime=350.0, stepSize=0.5, replications=20000) steady 1000
+{
+    SIPT = begin : start, end : stop <-
+    observes
+    {
+    	LProbe = think : begin, request[10] : end <-
+    }
+    where
+    {
+    	Clients {Client[nc]} =>
+    		Clients {Client <*> LProbe | Client[nc-1]}
+    }
+}
+
+Probe ["sample-steady-request.dat"] (stopTime=350.0, stepSize=0.5, density=10) transient 2000
+//SimProbe ["sample-steady-request-100-30.dat"] (stopTime=350.0, stepSize=0.5, replications=20000) transient 2000
+{
+    SIPT = begin : start, end : stop
+    observes
+    {
+    	LProbe = think : begin, timeout[10] : end
+    }
+    where
+    {
+    	Clients {Client[nc]} =>
+    		Clients {Client <*> LProbe | Client[nc-1]}
+    }
+}
+
+Probe ["sample-global-request.dat"] (stopTime=650.0, stepSize=0.5, density=10)
+//SimProbe ["sample-global-request-100-30.dat"] (stopTime=650.0, stepSize=0.5, replications=20000)
+{
+    GPT = eE : start, end[ns/2] : stop
+    observes
+    {
+    	LProbe = request[10] : end
+    }
+    where
+    {
+    	Servers {Complete_server [ns]} =>
+    		Servers {Complete_server <*> LProbe [ns]}
+    }
+}
