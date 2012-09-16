@@ -76,7 +76,7 @@ Probe ["global-worked.dat"] (stopTime=400, stepSize=1, density=10)
     }
 }
 
-SimProbe (stopTime=400, stepSize=1, replications=20000)
+SimProbe (stopTime=400, stepSize=1, replications=1000)
 {
     GPT = eE : start, end [nc/2] : stop
     observes
