@@ -34,6 +34,7 @@ Simulation(stopTime=40.0,stepSize=0.1,replications=10000){
    E[Servers:Server],E[Servers:Server]-1.95*Var[Servers:Server]^0.5,E[Servers:Server]+1.95*Var[Servers:Server]^0.5;  
 }*/
 
+
 Probe (stopTime = 40.0, stepSize=0.1, density=10)
 	steady 300
 	{
@@ -43,6 +44,31 @@ Probe (stopTime = 40.0, stepSize=0.1, density=10)
 		}
 		where {
 			Clients{Client[n]} =>
-				Clients{(Client<data, request, think>LProbe)|Client[n-1]}
+				Clients{(Client<*>LProbe)|Client[n-1]}
 		}
 	}
+	
+	
+Probe (stopTime = 40.0, stepSize=0.1, density=10)	
+	{
+		GPT = eE: start, end[n/2]:stop
+		observes {
+			LProbe = think:end
+		}
+		where {
+			Clients{Client[n]} =>
+				Clients{(Client<*>LProbe)[n]}
+		}
+	}
+	
+SimProbe (stopTime = 40.0, stepSize=0.1, replications=1000)	
+	{
+		GPT = eE: start, end[n/2]:stop
+		observes {
+			LProbe = think:end
+		}
+		where {
+			Clients{Client[n]} =>
+				Clients{(Client<*>LProbe)[n]}
+		}
+	}		
